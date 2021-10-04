@@ -47,6 +47,11 @@ export default class LazyLog extends Component {
      */
     text: string,
     /**
+     * A function that takes a line number and returns the
+     * uuid of that line.
+     */
+    lineNumberToId: func,
+    /**
      * Options object which will be passed through to the `fetch` request.
      * Defaults to `{ credentials: 'omit' }`.
      */
@@ -651,6 +656,7 @@ export default class LazyLog extends Component {
         highlight={highlight.includes(number)}
         onLineNumberClick={this.handleHighlight}
         data={ansiparse(decode(linesToRender.get(index)))}
+        onRowClick={() => this.props.lineNumberToId(number)}
       />
     );
   };
