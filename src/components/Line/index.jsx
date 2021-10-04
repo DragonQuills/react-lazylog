@@ -73,7 +73,7 @@ export default class Line extends Component {
         />
         <LineContent
           number={number}
-          onClick={onRowClick}
+          onClick={() => onRowClick(rowHeight + 10)}
           formatPart={formatPart}
           data={data}
         />

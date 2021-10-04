@@ -10,7 +10,12 @@ import {
   string,
   shape,
 } from 'prop-types';
-import { AutoSizer, List as VirtualList } from 'react-virtualized';
+import {
+  AutoSizer,
+  CellMeasurer,
+  CellMeasurerCache,
+  List as VirtualList,
+} from 'react-virtualized';
 import { List } from 'immutable';
 import ansiparse from '../../ansiparse';
 import { decode, encode } from '../../encoding';
@@ -232,6 +237,7 @@ export default class LazyLog extends Component {
       highlight: previousHighlight,
       isSearching,
       scrollToIndex,
+      rowHeights,
     }
   ) {
     const newScrollToIndex = isSearching
@@ -256,6 +262,7 @@ export default class LazyLog extends Component {
             offset: 0,
             loaded: false,
             error: null,
+            rowHeights: rowHeights || {},
           }
         : null),
     };
@@ -618,7 +625,25 @@ export default class LazyLog extends Component {
     );
   }
 
-  renderRow = ({ key, index, style }) => {
+  updateRowHeight = index => newHeight => {
+    console.log('update row height called');
+    const { rowHeights } = this.state;
+
+    rowHeights[index] = newHeight;
+    this.setState({ rowHeights });
+    console.log(index);
+    console.log(rowHeights[index]);
+    this.forceUpdate();
+  };
+
+  cache = new CellMeasurerCache({
+    defaultHeight: 24,
+    fixedWidth: true,
+  });
+
+  getRowHeight = ({ index }) => this.state.rowHeights[index];
+
+  renderRow = ({ key, index, style, parent }) => {
     const {
       rowHeight,
       selectableLines,
@@ -632,26 +657,39 @@ export default class LazyLog extends Component {
       isFilteringLinesWithMatches,
       filteredLines,
       resultLineUniqueIndexes,
+      rowHeights,
     } = this.state;
     const linesToRender = isFilteringLinesWithMatches ? filteredLines : lines;
     const number = isFilteringLinesWithMatches
       ? resultLineUniqueIndexes[index]
       : index + 1 + offset;
 
+    if (!rowHeights[index]) {
+      rowHeights[index] = rowHeight;
+    }
+
     return (
-      <Line
-        className={lineClassName}
-        highlightClassName={highlightLineClassName}
-        rowHeight={rowHeight}
-        style={style}
+      <CellMeasurer
+        cache={this.cache}
+        columnIndex={0}
         key={key}
-        number={number}
-        formatPart={this.handleFormatPart()}
-        selectable={selectableLines}
-        highlight={highlight.includes(number)}
-        onLineNumberClick={this.handleHighlight}
-        data={ansiparse(decode(linesToRender.get(index)))}
-      />
+        parent={parent}
+        rowIndex={index}>
+        <Line
+          className={lineClassName}
+          highlightClassName={highlightLineClassName}
+          rowHeight={rowHeights[index]}
+          style={style}
+          key={key}
+          number={number}
+          formatPart={this.handleFormatPart(number, data)}
+          selectable={selectableLines}
+          highlight={highlight.includes(number)}
+          onLineNumberClick={this.handleHighlight}
+          onRowClick={this.updateRowHeight(index)}
+          data={ansiparse(decode(linesToRender.get(index)))}
+        />
+      </CellMeasurer>
     );
   };
 
@@ -689,6 +727,7 @@ export default class LazyLog extends Component {
 
   calculateListHeight = autoSizerHeight => {
     const { height, enableSearch } = this.props;
+    const { rowHeights } = this.state;
 
     if (enableSearch) {
       return height === 'auto'
@@ -732,6 +771,7 @@ export default class LazyLog extends Component {
               }
               rowRenderer={row => this.renderRow(row)}
               noRowsRenderer={this.renderNoRows}
+              rowHeight={this.getRowHeight}
               {...this.props}
               height={this.calculateListHeight(height)}
               width={this.props.width === 'auto' ? width : this.props.width}

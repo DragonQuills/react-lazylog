@@ -31,6 +31,10 @@ export default class LineContent extends Component {
      * return a new value to render for the part.
      */
     formatPart: func,
+    /**
+     * Execute a function when the LineContent is clicked.
+     */
+    onClick: func,
     style: object,
   };
 
@@ -40,7 +44,7 @@ export default class LineContent extends Component {
   };
 
   render() {
-    const { data, formatPart, number, style } = this.props;
+    const { data, formatPart, number, style, onClick } = this.props;
 
     if (data) {
       const last = data[data.length - 1];
@@ -51,7 +55,7 @@ export default class LineContent extends Component {
     }
 
     return (
-      <span className={lineContent} style={style}>
+      <span className={lineContent} style={style} onClick={onClick}>
         {data &&
           data.map((part, n) => (
             <LinePart
